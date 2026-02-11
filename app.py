@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import base64
+import hmac
 import re
 from pathlib import Path
 
@@ -244,6 +245,8 @@ def init_state() -> None:
         st.session_state.answers = {}
     if "profile" not in st.session_state:
         st.session_state.profile = None
+    if "authenticated" not in st.session_state:
+        st.session_state.authenticated = False
 
 
 def render_floating_logo() -> None:
@@ -264,6 +267,30 @@ def render_hero(title: str, subtitle: str) -> None:
 
 def render_branding(subtitle: str) -> None:
     render_hero(APP_TITLE, subtitle)
+
+
+def require_password_access() -> bool:
+    if st.session_state.authenticated:
+        return True
+
+    configured_password = str(st.secrets.get("APP_PASSWORD", "")).strip()
+    if not configured_password or configured_password in {"CHANGE_ME", "SET_YOUR_PASSWORD_HERE"}:
+        render_branding("Die Anwendung ist passwortgeschützt. Bitte hinterlegen Sie ein gültiges APP_PASSWORD in den Secrets.")
+        st.error("Passwort nicht konfiguriert.")
+        return False
+
+    render_branding("Bitte geben Sie das Passwort ein, um die Anwendung zu öffnen.")
+    with st.form("login_form"):
+        entered_password = st.text_input("Passwort", type="password")
+        submitted = st.form_submit_button("Anmelden")
+
+    if submitted:
+        if hmac.compare_digest(entered_password, configured_password):
+            st.session_state.authenticated = True
+            st.rerun()
+        st.error("Das eingegebene Passwort ist nicht korrekt.")
+
+    return False
 
 
 def render_metric_card(label: str, value: str) -> None:
@@ -403,8 +430,14 @@ def main() -> None:
     init_state()
     render_floating_logo()
 
+    if not require_password_access():
+        return
+
     with st.sidebar:
         st.header("Navigation")
+        if st.button("Abmelden", use_container_width=True):
+            st.session_state.authenticated = False
+            st.rerun()
         if st.session_state.assessment_done:
             if st.button("Tagesprofil neu erfassen", use_container_width=True):
                 st.session_state.assessment_done = False
