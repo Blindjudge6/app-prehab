@@ -3,9 +3,15 @@
 import base64
 import hmac
 import re
+import sys
 from pathlib import Path
+import tomllib
 
 import streamlit as st
+
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 from prehab_logic import (
     PROGRAM_LENGTH_WEEKS,
@@ -23,13 +29,13 @@ UI_READABILITY = {
 
 APP_TITLE = "Priener Prä-Rehabilitationsprogramm RoMed Klinik Prien"
 LOGO_CANDIDATES = [
-    Path("assets/romed_prien_logo_transparent.png"),
-    Path("assets/romed_prien_logo_trim.png"),
-    Path("assets/romed_prien_logo.png"),
-    Path("assets/romed_prien_logo.jpg"),
-    Path("assets/romed_prien_logo.jpeg"),
-    Path("assets/romed_prien_logo.svg"),
-    Path("romed_prien_logo.png"),
+    BASE_DIR / "assets/romed_prien_logo_transparent.png",
+    BASE_DIR / "assets/romed_prien_logo_trim.png",
+    BASE_DIR / "assets/romed_prien_logo.png",
+    BASE_DIR / "assets/romed_prien_logo.jpg",
+    BASE_DIR / "assets/romed_prien_logo.jpeg",
+    BASE_DIR / "assets/romed_prien_logo.svg",
+    BASE_DIR / "romed_prien_logo.png",
 ]
 
 st.set_page_config(page_title=APP_TITLE, page_icon="", layout="wide")
@@ -274,6 +280,14 @@ def require_password_access() -> bool:
         return True
 
     configured_password = str(st.secrets.get("APP_PASSWORD", "")).strip()
+    if not configured_password:
+        local_secrets = BASE_DIR / ".streamlit" / "secrets.toml"
+        if local_secrets.exists():
+            try:
+                parsed = tomllib.loads(local_secrets.read_text(encoding="utf-8"))
+                configured_password = str(parsed.get("APP_PASSWORD", "")).strip()
+            except Exception:
+                configured_password = ""
     if not configured_password or configured_password in {"CHANGE_ME", "SET_YOUR_PASSWORD_HERE"}:
         render_branding("Die Anwendung ist passwortgeschützt. Bitte hinterlegen Sie ein gültiges APP_PASSWORD in den Secrets.")
         st.error("Passwort nicht konfiguriert.")
