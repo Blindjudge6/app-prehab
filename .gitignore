@@ -1,4 +1,7 @@
 ﻿.venv/
+**/.venv/
 __pycache__/
+**/__pycache__/
 *.pyc
-.streamlit/secrets.toml
+Prehabilitation/.streamlit/secrets.toml
+Dienstplanung/.streamlit/secrets.toml
