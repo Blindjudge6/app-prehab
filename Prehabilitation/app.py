@@ -2,6 +2,7 @@
 
 import base64
 import hmac
+import os
 import re
 import sys
 from pathlib import Path
@@ -278,7 +279,15 @@ def require_password_access() -> bool:
     if st.session_state.authenticated:
         return True
 
-    configured_password = str(st.secrets.get("APP_PASSWORD", "")).strip()
+    configured_password = ""
+    try:
+        configured_password = str(st.secrets.get("APP_PASSWORD", "")).strip()
+    except Exception:
+        configured_password = ""
+
+    if not configured_password:
+        configured_password = os.environ.get("APP_PASSWORD", "").strip()
+
     if not configured_password:
         local_secrets = BASE_DIR / ".streamlit" / "secrets.toml"
         if local_secrets.exists():
