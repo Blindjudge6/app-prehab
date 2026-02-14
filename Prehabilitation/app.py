@@ -5,7 +5,6 @@ import hmac
 import re
 import sys
 from pathlib import Path
-import tomllib
 
 import streamlit as st
 
@@ -284,8 +283,14 @@ def require_password_access() -> bool:
         local_secrets = BASE_DIR / ".streamlit" / "secrets.toml"
         if local_secrets.exists():
             try:
-                parsed = tomllib.loads(local_secrets.read_text(encoding="utf-8"))
-                configured_password = str(parsed.get("APP_PASSWORD", "")).strip()
+                for line in local_secrets.read_text(encoding="utf-8").splitlines():
+                    stripped = line.strip()
+                    if not stripped or stripped.startswith("#"):
+                        continue
+                    if stripped.startswith("APP_PASSWORD"):
+                        _, raw_value = stripped.split("=", 1)
+                        configured_password = raw_value.strip().strip('"').strip("'")
+                        break
             except Exception:
                 configured_password = ""
     if not configured_password or configured_password in {"CHANGE_ME", "SET_YOUR_PASSWORD_HERE"}:
